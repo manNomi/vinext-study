@@ -99,6 +99,8 @@ NITRO_PRESET=deno_deploy npx vite build
 
 참고 예시는 [`../../vinext/examples/app-router-nitro`](../../vinext/examples/app-router-nitro)다.
 
+더 깊게 보면 Cloudflare native path와 Nitro path는 모두 Vite plugin 기반이지만 목적이 다르다. Cloudflare native path는 Workers 기능을 가장 잘 쓰기 위한 경로이고, Nitro path는 여러 platform으로 나가기 위한 범용 경로다. 선택 기준과 feature trade-off는 [Appendix: Cloudflare native와 Nitro path 선택 기준](../appendix-vite-nitro-vinext/README.md#cloudflare-native와-nitro-path-선택-기준)에 자세히 정리했다.
+
 ## 수정할 때 깨지기 쉬운 지점
 
 - Workers build에 Cloudflare plugin이 빠지면 RSC/workerd 환경과 bindings가 맞지 않는다.

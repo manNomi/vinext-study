@@ -42,7 +42,7 @@ vinext는 Next.js 앱을 그대로 두고, Next.js 컴파일러/런타임 대신
 
 ## Vite Plugin Stack
 
-vinext는 단독 framework runtime처럼 보이지만, 실제로는 Vite plugin stack 위에서 움직인다.
+vinext는 단독 framework runtime처럼 보이지만, 실제로는 Vite plugin stack 위에서 움직인다. 이 구분을 잡아야 `vinext()`, `nitro()`, `cloudflare()`가 서로 경쟁하는 plugin이 아니라 서로 다른 층을 맡는 plugin이라는 점이 보인다.
 
 ```ts
 import { defineConfig } from "vite";
@@ -64,6 +64,8 @@ export default defineConfig({
 
 요약하면 `vinext()`는 "Next.js 앱을 Vite 앱처럼 실행 가능하게 만드는 plugin"이고, `nitro()`나 `cloudflare()`는 "그 Vite 앱을 특정 runtime에 배포 가능하게 만드는 platform plugin"이다.
 
+자세한 설명은 [Appendix: Vite, Nitro, vinext Plugin Stack](./appendix-vite-nitro-vinext/README.md)에 따로 정리했다. 여기서는 개념만 잡고, plugin hook 흐름, routeRules 변환, Cloudflare native path와 Nitro path의 차이는 appendix에서 보면 된다.
+
 ## Chapter Index
 
 | Chapter | Purpose |
@@ -78,6 +80,7 @@ export default defineConfig({
 | [08 Request Context Server Shims](./08-request-context-server-shims/README.md) | AsyncLocalStorage 기반 request context와 middleware header propagation |
 | [09 Build Prerender Static Export](./09-build-prerender-static-export/README.md) | build, prerender, static export, standalone, route classification |
 | [10 Cloudflare Runtime E2E](./10-cloudflare-runtime-e2e/README.md) | Workers deploy, KV cache, image optimization, TPR, E2E |
+| [Appendix Vite Nitro vinext](./appendix-vite-nitro-vinext/README.md) | `vinext()`, `nitro()`, `cloudflare()` Vite plugin stack 상세 해설 |
 
 ## Reading Order
 

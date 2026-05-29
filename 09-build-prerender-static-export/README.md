@@ -105,6 +105,10 @@ vinext pattern: /docs/:slug+
 Nitro pattern:  /docs/**
 ```
 
+이 연동은 "Nitro가 Next.js route semantics를 이해한다"는 뜻이 아니다. Next.js route semantics는 여전히 vinext가 만든다. Nitro는 platform output과 routeRules라는 배포 쪽 primitive를 제공한다. vinext는 자신의 route scanner/build report 결과를 Nitro가 이해하는 routeRules 형태로 번역해 전달한다.
+
+상세한 변환 단계와 주의점은 [Appendix: Nitro routeRules가 만들어지는 방식](../appendix-vite-nitro-vinext/README.md#nitro-routerules가-만들어지는-방식)에 따로 풀어썼다.
+
 ## 수정할 때 깨지기 쉬운 지점
 
 - `output: 'export'`와 default prerender는 비슷해 보여도 허용 정책이 다르다.

@@ -83,6 +83,12 @@ export default defineConfig({
 | `nitro()` | Nitro-supported platforms의 server output. vinext가 만든 route/runtime 정보를 Nitro build에 싣는다. |
 | `cloudflare()` | Workers build environment, bindings, assets, workerd runtime output. `vinext deploy`가 생성하는 native path다. |
 
+더 자세히 말하면 `vinext()`가 먼저 "이 프로젝트는 Next.js 앱처럼 생겼다"는 사실을 Vite에게 알려준다. 이 단계에서 `next/link` 같은 import는 local shim으로 바뀌고, `pages/`와 `app/`는 route table/route graph가 되며, App Router라면 `virtual:vinext-rsc-entry`, `virtual:vinext-app-ssr-entry`, `virtual:vinext-app-browser-entry` 같은 virtual entry가 생긴다.
+
+그 다음 `nitro()`나 `cloudflare()`가 "그렇게 만들어진 Vite server graph를 어디에 올릴 것인가"를 맡는다. Nitro는 Vercel/Netlify/AWS/Deno 같은 여러 preset의 server output을 만들고, Cloudflare plugin은 workerd/Workers 환경과 bindings를 만든다. 그래서 이 관계는 "둘 중 하나가 Next.js를 구현한다"가 아니라, `vinext()`가 Next.js compatibility layer를 만들고 platform plugin이 배포 target을 만든다는 층 구조다.
+
+상세한 hook 흐름과 책임 분리는 [Appendix: Vite, Nitro, vinext Plugin Stack](../appendix-vite-nitro-vinext/README.md)에 길게 정리했다.
+
 ## 주요 함수와 책임
 
 | Function / Hook | What to remember |
