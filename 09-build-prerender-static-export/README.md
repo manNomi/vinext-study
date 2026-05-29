@@ -38,6 +38,17 @@ vinext build
   -> optional standalone/precompress/nitro rules
 ```
 
+Nitro build:
+
+```text
+vite.config.ts
+  -> plugins: [vinext(), nitro()]
+  -> vinext() creates Next-compatible route/runtime graph
+  -> nitro() creates platform server output
+  -> vinext:nitro-route-rules runs during nitro.setup
+  -> ISR routes become Nitro routeRules with swr values
+```
+
 Static export:
 
 ```text
@@ -70,6 +81,29 @@ production server start
 | Internal prerender secret | build-time HTTP endpoint가 외부처럼 열리지 않게 보호한다. |
 | Hybrid projects | `app/`와 `pages/`가 같이 있으면 prerender result를 하나로 merge해야 한다. |
 | Standalone output | server bundle, client assets, runtime deps, `server.js`를 self-hosting 폴더로 복사한다. |
+| Nitro routeRules | vinext의 ISR route를 Nitro의 `routeRules`로 변환한다. 내부 `:param` pattern은 Nitro/rou3의 `*`/`**` wildcard로 바뀐다. |
+
+## Nitro 연동 요약
+
+Nitro는 Cloudflare가 아닌 여러 deployment target을 Vite plugin으로 감싸는 쪽이다. vinext는 Nitro 자체를 직접 dependency로 두지 않고, Nitro plugin convention인 `nitro.setup` hook에 맞춰 routeRules를 주입한다.
+
+핵심 구현은 [`../../vinext/packages/vinext/src/build/nitro-route-rules.ts`](../../vinext/packages/vinext/src/build/nitro-route-rules.ts)다.
+
+- `collectNitroRouteRules()`가 `app/`, `pages/`, `pages/api/`를 스캔한다.
+- `buildReportRows()` 결과 중 ISR route만 골라낸다.
+- `generateNitroRouteRules()`가 `{ "/blog/*": { swr: 60 } }` 같은 Nitro routeRules를 만든다.
+- `convertToNitroPattern()`이 vinext 내부 route pattern을 Nitro의 rou3 wildcard로 변환한다.
+- `mergeNitroRouteRules()`는 사용자가 이미 cache/static/isr/prerender rule을 지정한 route를 덮어쓰지 않는다.
+
+예시:
+
+```text
+vinext pattern: /blog/:slug
+Nitro pattern:  /blog/*
+
+vinext pattern: /docs/:slug+
+Nitro pattern:  /docs/**
+```
 
 ## 수정할 때 깨지기 쉬운 지점
 
@@ -79,6 +113,8 @@ production server start
 - Pages Router `getStaticPaths`는 production server의 internal endpoint를 통해 가져오는 경로가 있다.
 - prerender manifest 위치는 runtime start/deploy/cache seed와 맞아야 한다.
 - route classification은 build report용 표시가 아니라 RSC entry runtime decision에도 연결된다.
+- Nitro routeRules는 prerender 결과가 아니라 build 전 filesystem/static analysis 기반이므로 speculative prerender로만 static 판정된 route와 차이가 날 수 있다.
+- 사용자가 명시한 Nitro cache rule을 자동 생성 rule이 덮어쓰면 안 된다.
 
 ## 관련 테스트
 
@@ -90,6 +126,7 @@ production server start
 - [`../../vinext/tests/layout-classification.test.ts`](../../vinext/tests/layout-classification.test.ts)
 - [`../../vinext/tests/route-classification-manifest.test.ts`](../../vinext/tests/route-classification-manifest.test.ts)
 - [`../../vinext/tests/route-classification-injector.test.ts`](../../vinext/tests/route-classification-injector.test.ts)
+- [`../../vinext/tests/nitro-route-rules.test.ts`](../../vinext/tests/nitro-route-rules.test.ts)
 - [`../../vinext/tests/standalone-build.test.ts`](../../vinext/tests/standalone-build.test.ts)
 - [`../../vinext/tests/e2e/static-export/app-router.spec.ts`](../../vinext/tests/e2e/static-export/app-router.spec.ts)
 - [`../../vinext/tests/e2e/standalone-output/basic.spec.ts`](../../vinext/tests/e2e/standalone-output/basic.spec.ts)
@@ -101,3 +138,4 @@ production server start
 - prerender output path와 runtime lookup path가 같은 규칙을 쓰는가?
 - App+Pages hybrid build에서 manifest가 덮어써지지 않고 merge되는가?
 - standalone output에 외부화된 runtime dependency가 빠지지 않는가?
+- Nitro routeRules 변환이 dynamic/catch-all/optional catch-all pattern을 올바르게 보존하는가?

@@ -61,21 +61,48 @@ Cloudflare analytics
   -> KV bulk upload with runtime-compatible keys
 ```
 
+Nitro multi-platform:
+
+```text
+vite.config.ts
+  -> plugins: [vinext(), nitro()]
+  -> vite build
+  -> Nitro preset chooses Vercel/Netlify/AWS/Deno/etc.
+  -> vinext supplies Next-compatible runtime behavior
+  -> Nitro supplies platform server output
+```
+
 ## 주요 개념
 
 | Concept | What to remember |
 | --- | --- |
 | Generated worker entry | App Router와 Pages Router worker templates가 다르고, image/asset/middleware path가 포함된다. |
 | `@cloudflare/vite-plugin` | Workers build에서는 Vite config에 Cloudflare plugin이 필요하다. |
+| `nitro()` | Cloudflare 외 platform을 위한 Vite plugin adapter다. `plugins: [vinext(), nitro()]`처럼 vinext 옆에 붙인다. |
 | KV ISR | `KVCacheHandler`가 cache entry와 tag invalidation timestamp를 KV에 저장한다. |
 | `waitUntil()` | cache writes/delete 같은 background work가 request 이후에도 살아남게 한다. |
 | Cloudflare Images | local image optimization은 `env.IMAGES` binding이 있을 때 resize/transcode 가능하다. |
 | TPR | 전체 사이트를 prerender하지 않고 traffic이 있는 path만 KV에 미리 채운다. |
 | E2E | Workers behavior는 Node dev/prod와 다르므로 Playwright + wrangler dev 경로가 따로 있다. |
 
+## Nitro와 Cloudflare 선택 기준
+
+Cloudflare Workers로 배포한다면 native path인 `vinext deploy`와 `@cloudflare/vite-plugin`이 우선이다. 이 경로는 Workers bindings, KV ISR, ASSETS binding, Cloudflare Images, TPR 같은 Cloudflare 전용 기능을 직접 연결한다.
+
+Nitro는 "Cloudflare가 아닌 target에도 같은 vinext 앱을 올리고 싶을 때"의 경로다. Vercel, Netlify, AWS Amplify, Azure, Deno Deploy 같은 Nitro-supported platform을 대상으로 할 때 `nitro()`를 붙이고, CI에서는 Nitro가 platform preset을 자동 감지하거나 로컬에서 `NITRO_PRESET`을 지정한다.
+
+```bash
+NITRO_PRESET=vercel npx vite build
+NITRO_PRESET=netlify npx vite build
+NITRO_PRESET=deno_deploy npx vite build
+```
+
+참고 예시는 [`../../vinext/examples/app-router-nitro`](../../vinext/examples/app-router-nitro)다.
+
 ## 수정할 때 깨지기 쉬운 지점
 
 - Workers build에 Cloudflare plugin이 빠지면 RSC/workerd 환경과 bindings가 맞지 않는다.
+- Nitro target에서는 Cloudflare-only binding, KV handler, Images binding에 기대면 안 된다.
 - Pages Router ISR KV detection은 제한이 있어 수동 설정 gap을 고려해야 한다.
 - generated worker template과 `server/worker-utils.ts`, `prod-server.ts`의 header merge/static asset logic이 어긋나기 쉽다.
 - KV key format을 바꾸면 runtime cache와 TPR bulk upload가 동시에 깨진다.
@@ -98,6 +125,7 @@ Cloudflare analytics
 ## 복기용 체크리스트
 
 - 이 동작은 Node `vinext start`와 Workers 모두에서 같아야 하는가, Workers 전용인가?
+- Nitro target에서도 필요한 기능인가, Cloudflare native 기능인가?
 - generated worker와 shared utility가 같은 header/static asset policy를 쓰는가?
 - KV entry shape와 TPR upload shape가 같은가?
 - `waitUntil()`이 request context를 통해 deep call stack까지 전달되는가?

@@ -43,6 +43,46 @@ vinext CLI
   -> build: generateBundle/writeBundle/closeBundle hook이 manifest, prerender, deploy 준비
 ```
 
+## Vite plugin stack에서의 위치
+
+`vinext()`는 platform adapter가 아니라 Next.js compatibility adapter다. Vite plugin 배열에서 `vinext()`가 먼저 Next.js 앱을 Vite가 이해할 수 있는 module graph로 만들고, 그 뒤에 `nitro()`나 `cloudflare()` 같은 platform plugin이 output/runtime target을 맡는다.
+
+```ts
+// Cloudflare가 아닌 multi-platform target
+import { defineConfig } from "vite";
+import vinext from "vinext";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [vinext(), nitro()],
+});
+```
+
+```ts
+// Cloudflare Workers native target
+import { defineConfig } from "vite";
+import vinext from "vinext";
+import { cloudflare } from "@cloudflare/vite-plugin";
+
+export default defineConfig({
+  plugins: [
+    vinext(),
+    cloudflare({
+      viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+    }),
+  ],
+});
+```
+
+정리하면 다음과 같다.
+
+| Plugin | What it owns |
+| --- | --- |
+| `vinext()` | `next/*` shim, Next config/env, pages/app scanner, virtual RSC/SSR/browser entries, build/prerender metadata |
+| `@vitejs/plugin-rsc` | RSC transform, `"use client"`/`"use server"` boundary, RSC multi-environment graph. App Router에서 `vinext()`가 자동 구성하거나 사용자가 직접 구성할 수 있다. |
+| `nitro()` | Nitro-supported platforms의 server output. vinext가 만든 route/runtime 정보를 Nitro build에 싣는다. |
+| `cloudflare()` | Workers build environment, bindings, assets, workerd runtime output. `vinext deploy`가 생성하는 native path다. |
+
 ## 주요 함수와 책임
 
 | Function / Hook | What to remember |
@@ -50,8 +90,10 @@ vinext CLI
 | `buildViteConfig()` in `cli.ts` | 사용자의 `vite.config.*` 유무에 따라 자동 config 또는 user config merge 경로를 선택한다. |
 | `loadVite()` in `cli.ts` | linked package 환경에서도 프로젝트 루트의 Vite를 우선 resolve한다. |
 | `vinext()` in `index.ts` | 여러 Vite plugin 조각을 반환하는 최상위 entry다. |
+| Nitro detection in `index.ts` | plugin list에서 `nitro`/`nitro:*`를 감지해 bundled runtime에 맞는 build config와 routeRules hook을 적용한다. |
 | `vinext:config` plugin | Next config, env, aliases, RSC, build output, page extensions 같은 큰 설정을 만든다. |
 | `vinext:pages-router` plugin | dev server middleware에서 Pages/App 요청, middleware, config redirects/rewrites/headers를 연결한다. |
+| `vinext:nitro-route-rules` plugin | Nitro의 `setup` hook에 ISR routeRules를 주입한다. |
 | virtual module `load()` hooks | generated entry 코드를 Vite module graph에 주입한다. |
 | build hooks | build id, server manifest, prerender manifest, precompress, Cloudflare build integration 등을 산출한다. |
 
@@ -59,6 +101,7 @@ vinext CLI
 
 - CLI가 user `vite.config.*`를 발견했을 때 plugin을 중복 주입하면 RSC transform이 두 번 돌 수 있다.
 - `next/*` alias와 `resolveId` hook은 environment별로 달라질 수 있다. RSC, SSR, client에서 같은 shim을 쓰면 안 되는 경우가 있다.
+- `vinext()`는 `nitro()`/`cloudflare()`보다 먼저 있어야 virtual entries와 aliases를 platform plugin이 소비할 수 있다.
 - dev server와 production server의 요청 처리 순서가 달라지면 Next.js parity가 쉽게 깨진다.
 - middleware, config redirects/rewrites/headers, static asset 처리 순서는 request pipeline 전반에 영향을 준다.
 - build hook은 실행 순서가 중요하다. manifest를 쓰는 hook과 읽는 hook의 순서가 바뀌면 prerender/start/deploy가 같이 깨진다.
@@ -78,6 +121,7 @@ vinext CLI
 
 - CLI에서 Vite를 직접 import하지 않고 프로젝트 기준으로 resolve하는가?
 - user Vite config가 있을 때 자동 plugin 주입과 충돌하지 않는가?
+- Nitro/Cloudflare 같은 platform plugin이 있을 때 bundled runtime용 external/chunk 설정이 적용되는가?
 - `next/*` alias가 RSC/SSR/client 환경 차이를 보존하는가?
 - dev와 production 요청 순서가 같은 의미를 유지하는가?
 - build 산출물의 소비자, 예를 들어 start/deploy/prerender가 필요한 manifest를 같은 위치에서 읽는가?

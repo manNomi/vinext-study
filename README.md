@@ -40,6 +40,30 @@ vinext는 Next.js 앱을 그대로 두고, Next.js 컴파일러/런타임 대신
 - `packages/vinext/src/entries/*`: Vite가 실행할 가상 entry 코드를 생성한다.
 - `packages/vinext/src/server/*`와 `packages/vinext/src/shims/*`: 실제 요청 처리와 `next/*` 공개 API 호환성을 구현한다.
 
+## Vite Plugin Stack
+
+vinext는 단독 framework runtime처럼 보이지만, 실제로는 Vite plugin stack 위에서 움직인다.
+
+```ts
+import { defineConfig } from "vite";
+import vinext from "vinext";
+import { nitro } from "nitro/vite";
+
+export default defineConfig({
+  plugins: [vinext(), nitro()],
+});
+```
+
+역할 구분은 이렇게 잡으면 된다.
+
+| Plugin | Responsibility |
+| --- | --- |
+| `vinext()` | Next.js API 호환성. `next/*` shim, file-system routing, virtual entries, RSC/SSR/browser wiring, build/prerender metadata를 만든다. |
+| `nitro()` | Cloudflare가 아닌 Vercel, Netlify, AWS, Deno Deploy 같은 platform output을 담당하는 deployment/runtime adapter다. |
+| `cloudflare()` | Cloudflare Workers native target. `cloudflare:workers` bindings, Workers build environment, ASSETS/Images/KV 같은 Cloudflare 기능을 담당한다. |
+
+요약하면 `vinext()`는 "Next.js 앱을 Vite 앱처럼 실행 가능하게 만드는 plugin"이고, `nitro()`나 `cloudflare()`는 "그 Vite 앱을 특정 runtime에 배포 가능하게 만드는 platform plugin"이다.
+
 ## Chapter Index
 
 | Chapter | Purpose |
@@ -77,6 +101,7 @@ vinext는 Next.js 앱을 그대로 두고, Next.js 컴파일러/런타임 대신
 | Server runtime | [`../vinext/packages/vinext/src/server`](../vinext/packages/vinext/src/server) |
 | Shims | [`../vinext/packages/vinext/src/shims`](../vinext/packages/vinext/src/shims) |
 | Build | [`../vinext/packages/vinext/src/build`](../vinext/packages/vinext/src/build) |
+| Nitro integration | [`../vinext/packages/vinext/src/build/nitro-route-rules.ts`](../vinext/packages/vinext/src/build/nitro-route-rules.ts), [`../vinext/examples/app-router-nitro`](../vinext/examples/app-router-nitro) |
 | Cloudflare | [`../vinext/packages/vinext/src/cloudflare`](../vinext/packages/vinext/src/cloudflare), [`../vinext/packages/vinext/src/deploy.ts`](../vinext/packages/vinext/src/deploy.ts) |
 | Tests | [`../vinext/tests`](../vinext/tests), [`../vinext/tests/e2e`](../vinext/tests/e2e) |
 
@@ -92,6 +117,7 @@ vinext는 Next.js 앱을 그대로 두고, Next.js 컴파일러/런타임 대신
 | navigation, prefetch, scroll, history issue | `07`, then `shims/navigation.ts`, `shims/link.tsx`, `server/app-browser-*` |
 | `headers()`, `cookies()`, middleware request override issue | `08`, then `shims/headers.ts`, `unified-request-context.ts` |
 | static export, prerender, build report issue | `09`, then `build/prerender.ts`, `run-prerender.ts`, `static-export.ts` |
+| Nitro deployment or ISR routeRules issue | `09`, then `build/nitro-route-rules.ts` and `examples/app-router-nitro` |
 | Workers deploy, KV ISR, image optimization issue | `10`, then `deploy.ts`, `cloudflare/*`, worker E2E |
 
 ## Verification Habit
