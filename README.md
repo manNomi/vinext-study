@@ -16,6 +16,7 @@
 - Pages Router 요청은 SSR, API route, data route, ISR을 어디에서 처리하는가?
 - dev, build, start, deploy에서 같은 책임이 어떤 파일로 나뉘는가?
 - Cloudflare Workers 전용 경로와 일반 Node production 경로는 어디서 갈라지는가?
+- vinext는 왜 Next.js를 그대로 fork하지 않고 Vite 기반으로 다시 구현하는가?
 - 특정 기능을 수정할 때 우선 봐야 할 소스와 테스트는 무엇인가?
 
 ## One Screen Model
@@ -80,6 +81,7 @@ export default defineConfig({
 | [08 Request Context Server Shims](./08-request-context-server-shims/README.md) | AsyncLocalStorage 기반 request context와 middleware header propagation |
 | [09 Build Prerender Static Export](./09-build-prerender-static-export/README.md) | build, prerender, static export, standalone, route classification |
 | [10 Cloudflare Runtime E2E](./10-cloudflare-runtime-e2e/README.md) | Workers deploy, KV cache, image optimization, TPR, E2E |
+| [11 vinext vs Next](./11-vinext-vs-next/README.md) | vinext가 나온 이유, Next.js와 다르게 구현하는 이유, 공개 API와 내부 구현의 경계 |
 | [Appendix Vite Nitro vinext](./appendix-vite-nitro-vinext/README.md) | `vinext()`, `nitro()`, `cloudflare()` Vite plugin stack 상세 해설 |
 
 ## Reading Order
@@ -92,6 +94,7 @@ export default defineConfig({
 4. `04`에서 Pages Router가 별도 runtime인 이유를 확인한다.
 5. `02`, `07`, `08`로 API 호환성과 runtime state를 보강한다.
 6. `09`, `10`으로 build/deploy/Workers까지 연결한다.
+7. `11`에서 vinext가 왜 Next.js 내부를 그대로 복사하지 않고 Vite-native로 다시 구현하는지 정리한다.
 
 ## Source Map
 
@@ -106,6 +109,7 @@ export default defineConfig({
 | Build | [`../vinext/packages/vinext/src/build`](../vinext/packages/vinext/src/build) |
 | Nitro integration | [`../vinext/packages/vinext/src/build/nitro-route-rules.ts`](../vinext/packages/vinext/src/build/nitro-route-rules.ts), [`../vinext/examples/app-router-nitro`](../vinext/examples/app-router-nitro) |
 | Cloudflare | [`../vinext/packages/vinext/src/cloudflare`](../vinext/packages/vinext/src/cloudflare), [`../vinext/packages/vinext/src/deploy.ts`](../vinext/packages/vinext/src/deploy.ts) |
+| Next comparison | [`../vinext/README.md`](../vinext/README.md), [`../vinext/AGENTS.md`](../vinext/AGENTS.md), [`../vinext/.nextjs-ref/packages/next/src`](../vinext/.nextjs-ref/packages/next/src), [`../vinext/.nextjs-ref/test`](../vinext/.nextjs-ref/test) |
 | Tests | [`../vinext/tests`](../vinext/tests), [`../vinext/tests/e2e`](../vinext/tests/e2e) |
 
 ## Modification Compass
@@ -122,6 +126,7 @@ export default defineConfig({
 | static export, prerender, build report issue | `09`, then `build/prerender.ts`, `run-prerender.ts`, `static-export.ts` |
 | Nitro deployment or ISR routeRules issue | `09`, then `build/nitro-route-rules.ts` and `examples/app-router-nitro` |
 | Workers deploy, KV ISR, image optimization issue | `10`, then `deploy.ts`, `cloudflare/*`, worker E2E |
+| Next.js와 같아야 할지 vinext답게 달라야 할지 애매한 issue | `11`, then `AGENTS.md`, `.nextjs-ref/test`, `.nextjs-ref/packages/next/src` |
 
 ## Verification Habit
 
