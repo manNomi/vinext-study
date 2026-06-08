@@ -4,6 +4,8 @@
 
 기준 소스는 형제 디렉터리의 [`../vinext`](../vinext) 저장소다. 이 노트는 `vinext` 소스를 수정하지 않고, 관찰한 구조를 챕터별로 압축한다.
 
+Notion 한 페이지로 붙여 넣거나 import하려면 [`notion-vinext-one-page.md`](./notion-vinext-one-page.md)를 사용한다.
+
 ## Ultra Goal
 
 `vinext`의 전체 구조를 "어떤 기능이 어디에서 시작되고, 어떤 파일을 지나며, 어떤 테스트로 검증되는가"라는 관점으로 재구성한다.
@@ -83,6 +85,7 @@ export default defineConfig({
 | [10 Cloudflare Runtime E2E](./10-cloudflare-runtime-e2e/README.md) | Workers deploy, KV cache, image optimization, TPR, E2E |
 | [11 vinext vs Next](./11-vinext-vs-next/README.md) | vinext가 나온 이유, Next.js와 다르게 구현하는 이유, 공개 API와 내부 구현의 경계 |
 | [Appendix Vite Nitro vinext](./appendix-vite-nitro-vinext/README.md) | `vinext()`, `nitro()`, `cloudflare()` Vite plugin stack 상세 해설 |
+| [Notion One Page](./notion-vinext-one-page.md) | 전체 내용을 Notion 단일 페이지용으로 재구성한 통합본 |
 
 ## Reading Order
 
